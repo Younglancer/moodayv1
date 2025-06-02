@@ -1,0 +1,38 @@
+{
+    "expo": {
+      "name": "Mooday - Onboarding & Core Access Flow",
+      "slug": "mooday-onboarding-core-access-flow",
+      "version": "1.0.0",
+      "orientation": "portrait",
+      "scheme": "myapp",
+      "userInterfaceStyle": "automatic",
+      "newArchEnabled": true,
+      "assetBundlePatterns": [
+        "**/*"
+      ],
+      "ios": {
+        "supportsTablet": true,
+        "bundleIdentifier": "com.mooday.app"
+      },
+      "android": {
+        "adaptiveIcon": {
+          "backgroundColor": "#ffffff"
+        },
+        "package": "com.mooday.app"
+      },
+      "web": {
+        "bundler": "metro",
+        "output": "static",
+        "favicon": "./assets/images/favicon.png"
+      },
+      "plugins": [
+        [
+          "expo-router"
+        ]
+      ],
+      "experiments": {
+        "typedRoutes": true,
+        "tsconfigPaths": true
+      }
+    }
+  }
