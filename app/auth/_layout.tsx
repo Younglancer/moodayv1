@@ -38,6 +38,12 @@ function AuthLayoutContent() {
           },
         }}
       />
+      <Stack.Screen
+        name="callback"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

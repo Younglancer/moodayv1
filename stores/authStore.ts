@@ -2,12 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
-import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
-import { router } from 'expo-router';
 
-WebBrowser.maybeCompleteAuthSession();
+import { router } from 'expo-router';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -44,7 +40,6 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user) => set({ user }),
       setAuthenticated: (value) => {
-        console.log('Setting authentication state:', value);
         if (value) {
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
@@ -64,11 +59,9 @@ export const useAuthStore = create<AuthState>()(
       initializeAuth: async () => {
         try {
           set({ isLoading: true, error: null });
-          console.log('Initializing auth...');
           
           // Check if there's an existing session
           const { data: { session }, error } = await supabase.auth.getSession();
-          console.log('Initial session check:', { session, error });
           
           if (error) {
             console.error('Session error:', error);
@@ -77,20 +70,16 @@ export const useAuthStore = create<AuthState>()(
           }
 
           if (!session?.user) {
-            console.log('No session found');
             set({ isAuthenticated: false, user: null });
             return;
           }
 
-          console.log('Session found, fetching user profile...');
           // Fetch user profile
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('*')
             .eq('id', session.user.id)
             .single();
-
-          console.log('User profile fetch result:', { userData, userError });
 
           if (userError) {
             console.error('User profile error:', userError);
@@ -99,7 +88,6 @@ export const useAuthStore = create<AuthState>()(
           }
 
           if (!userData) {
-            console.log('No user profile found, creating new profile...');
             // Create user profile if it doesn't exist
             const { error: insertError } = await supabase.from('users').insert({
               id: session.user.id,
@@ -117,7 +105,6 @@ export const useAuthStore = create<AuthState>()(
               set({ isAuthenticated: false, user: null, error: insertError.message });
               return;
             }
-            console.log('New user profile created');
           }
 
           const finalUser = {
@@ -126,13 +113,11 @@ export const useAuthStore = create<AuthState>()(
             username: userData?.username || session.user.email?.split('@')[0] || 'user',
             authMethod: userData?.auth_method || 'email',
           };
-          console.log('Setting user state:', finalUser);
 
           set({
             isAuthenticated: true,
             user: finalUser,
           });
-          console.log('Auth initialization complete');
         } catch (error: any) {
           console.error('Auth initialization error:', error);
           set({ isAuthenticated: false, user: null, error: error.message });
@@ -144,13 +129,10 @@ export const useAuthStore = create<AuthState>()(
       signInWithEmail: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
-          console.log('Starting email sign-in process...', { email });
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-
-          console.log('Email sign-in response:', { data, error });
 
           if (error || !data.user) {
             console.error('Email sign-in failed:', error?.message);
@@ -158,14 +140,11 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          console.log('Fetching user profile after email sign-in...');
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('*')
             .eq('id', data.user.id)
             .single();
-
-          console.log('User profile fetch result:', { userData, userError });
 
           if (userError || !userData) {
             console.error('User profile fetch failed:', userError?.message);
@@ -179,7 +158,6 @@ export const useAuthStore = create<AuthState>()(
             username: userData.username,
             authMethod: userData.auth_method,
           };
-          console.log('Setting user state after email sign-in:', finalUser);
 
           set({
             isAuthenticated: true,
@@ -187,13 +165,11 @@ export const useAuthStore = create<AuthState>()(
           });
 
           // Update last login
-          console.log('Updating last login...');
           await supabase
             .from('users')
             .update({ last_login: new Date().toISOString() })
             .eq('id', data.user.id);
 
-          console.log('Navigating to tabs after successful email sign-in...');
           router.replace('/(tabs)');
         } catch (error: any) {
           console.error('Email sign-in error:', error);
@@ -260,41 +236,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signInWithGoogle: async () => {
-        try {
-          set({ isLoading: true, error: null });
-          console.log('Starting Google sign-in process...');
-
-          const redirectUri = makeRedirectUri({
-            scheme: 'com.mooday.app',
-            path: 'auth/callback',
-          });
-          console.log('Redirect URI:', redirectUri);
-
-          const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: redirectUri,
-              queryParams: {
-                access_type: 'offline',
-                prompt: 'consent',
-              },
-            },
-          });
-
-          if (error) {
-            console.error('OAuth error:', error);
-            throw error;
-          }
-
-          console.log('OAuth response:', data);
-          console.log('Please complete the authentication in the browser. The app will handle the callback.');
-          
-        } catch (error: any) {
-          console.error('Google sign-in error:', error);
-          set({ error: error.message, isAuthenticated: false });
-        } finally {
-          set({ isLoading: false });
-        }
+        // This method is deprecated - use useGoogleAuth hook instead
+        throw new Error('Use useGoogleAuth hook for Google authentication');
       },
 
       resetPassword: async (email: string) => {
@@ -375,16 +318,12 @@ export const useAuthStore = create<AuthState>()(
 
 // Listen to auth changes
 supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log('Auth state changed:', { event, session });
   const { initializeAuth } = useAuthStore.getState();
   
   if (event === 'SIGNED_IN' && session) {
-    console.log('User signed in, initializing auth...');
     await initializeAuth();
-    console.log('Navigating to tabs after sign in...');
     router.replace('/(tabs)');
   } else if (event === 'SIGNED_OUT') {
-    console.log('User signed out');
     useAuthStore.setState({ isAuthenticated: false, user: null });
     router.replace('/welcome');
   }
